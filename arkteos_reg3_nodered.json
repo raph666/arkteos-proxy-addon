@@ -4,7 +4,7 @@
     "type": "tab",
     "label": "Arkteos REG3",
     "disabled": false,
-    "info": "Intégration PAC Arkteos Zuran 4 via addon proxy.\nStreaming permanent sur <IP_HA>:9641.\nPublication MQTT avec discovery automatique HA.\nTrames 163 bytes (frigo), 227 bytes (régulation).\nRemplacer <IP_HA> par l'IP de Home Assistant dans le nœud PAC via proxy."
+    "info": "Intégration PAC Arkteos Zuran 4 via addon proxy.\nStreaming permanent sur <IP_HA>:9641.\nPublication MQTT avec discovery automatique HA et throttling.\nRemplacer <IP_HA> par l'IP de Home Assistant dans le nœud PAC via proxy."
   },
   {
     "id": "arkteos_mqtt_broker",
@@ -81,9 +81,39 @@
     "x": 580,
     "y": 100,
     "wires": [
-      ["arkteos_debug_frigo_parsed", "arkteos_publish_frigo"],
-      ["arkteos_debug_regulation_parsed", "arkteos_publish_regulation"]
+      ["arkteos_throttle_frigo"],
+      ["arkteos_throttle_regulation"]
     ]
+  },
+  {
+    "id": "arkteos_throttle_frigo",
+    "type": "function",
+    "z": "arkteos_flow",
+    "name": "Throttle frigo",
+    "func": "// Seuils de changement minimum pour publier\nconst THRESHOLDS = {\n    exterieur_temp:     0.5,\n    freq_comp_actuelle: 1,\n    dc_voltage:         5\n};\n// Intervalle max de publication en ms même sans changement\nconst MAX_INTERVALS = {\n    exterieur_temp:     60000,\n    freq_comp_actuelle: 30000,\n    dc_voltage:         60000\n};\n\nconst now = Date.now();\nconst prev = context.get('prev') || {};\nconst lastPublished = context.get('lastPublished') || {};\n\nconst data = msg.payload;\nconst toPublish = {};\n\nfor (const key of Object.keys(THRESHOLDS)) {\n    const val = data[key];\n    const prevVal = prev[key];\n    const lastTs = lastPublished[key] || 0;\n    const delta = prevVal !== undefined ? Math.abs(val - prevVal) : Infinity;\n    const elapsed = now - lastTs;\n\n    if (delta >= THRESHOLDS[key] || elapsed >= MAX_INTERVALS[key]) {\n        toPublish[key] = val;\n        lastPublished[key] = now;\n        prev[key] = val;\n    }\n}\n\ncontext.set('prev', prev);\ncontext.set('lastPublished', lastPublished);\n\nif (Object.keys(toPublish).length === 0) return null;\n\nmsg.payload = Object.assign({ frame_type: 'frigo' }, toPublish);\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 790,
+    "y": 60,
+    "wires": [["arkteos_debug_frigo_parsed", "arkteos_publish_frigo"]]
+  },
+  {
+    "id": "arkteos_throttle_regulation",
+    "type": "function",
+    "z": "arkteos_flow",
+    "name": "Throttle regulation",
+    "func": "// Seuils de changement minimum pour publier\nconst THRESHOLDS = {\n    puissance_inst_produite:    0.1,\n    puissance_inst_consommee:   0.1,\n    primaire_temp_eau_aller:    0.5,\n    primaire_temp_eau_retour:   0.5,\n    primaire_pression:          0.1,\n    zone1_temp_interieur:       0.5,\n    zone1_consigne:             0.5,\n    ecs_temp_eau_milieu:        0.5,\n    ecs_temp_eau_bas:           0.5\n};\n// Intervalle max de publication en ms même sans changement\nconst MAX_INTERVALS = {\n    puissance_inst_produite:    30000,\n    puissance_inst_consommee:   30000,\n    primaire_temp_eau_aller:    60000,\n    primaire_temp_eau_retour:   60000,\n    primaire_pression:          60000,\n    zone1_temp_interieur:       60000,\n    zone1_consigne:             60000,\n    ecs_temp_eau_milieu:        60000,\n    ecs_temp_eau_bas:           60000\n};\n\nconst now = Date.now();\nconst prev = context.get('prev') || {};\nconst lastPublished = context.get('lastPublished') || {};\n\nconst data = msg.payload;\nconst toPublish = {};\n\nfor (const key of Object.keys(THRESHOLDS)) {\n    const val = data[key];\n    const prevVal = prev[key];\n    const lastTs = lastPublished[key] || 0;\n    const delta = prevVal !== undefined ? Math.abs(val - prevVal) : Infinity;\n    const elapsed = now - lastTs;\n\n    if (delta >= THRESHOLDS[key] || elapsed >= MAX_INTERVALS[key]) {\n        toPublish[key] = val;\n        lastPublished[key] = now;\n        prev[key] = val;\n    }\n}\n\ncontext.set('prev', prev);\ncontext.set('lastPublished', lastPublished);\n\nif (Object.keys(toPublish).length === 0) return null;\n\nmsg.payload = Object.assign({ frame_type: 'regulation' }, toPublish);\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 790,
+    "y": 140,
+    "wires": [["arkteos_debug_regulation_parsed", "arkteos_publish_regulation"]]
   },
   {
     "id": "arkteos_debug_frigo_parsed",
@@ -98,7 +128,7 @@
     "targetType": "msg",
     "statusVal": "",
     "statusType": "auto",
-    "x": 810,
+    "x": 1010,
     "y": 40,
     "wires": []
   },
@@ -115,7 +145,7 @@
     "targetType": "msg",
     "statusVal": "",
     "statusType": "auto",
-    "x": 830,
+    "x": 1030,
     "y": 160,
     "wires": []
   },
@@ -124,13 +154,13 @@
     "type": "function",
     "z": "arkteos_flow",
     "name": "Publish frigo",
-    "func": "const data = msg.payload;\nconst msgs = [];\n\nconst sensors = [\n    { topic: 'arkteos/frigo/exterieur_temp',     value: data.exterieur_temp },\n    { topic: 'arkteos/frigo/freq_comp_actuelle', value: data.freq_comp_actuelle },\n    { topic: 'arkteos/frigo/dc_voltage',         value: data.dc_voltage }\n];\n\nfor (const s of sensors) {\n    msgs.push({ topic: s.topic, payload: String(s.value), qos: 0, retain: true });\n}\n\nreturn [msgs];\n",
+    "func": "const data = msg.payload;\nconst msgs = [];\n\nconst topics = {\n    exterieur_temp:     'arkteos/frigo/exterieur_temp',\n    freq_comp_actuelle: 'arkteos/frigo/freq_comp_actuelle',\n    dc_voltage:         'arkteos/frigo/dc_voltage'\n};\n\nfor (const [key, topic] of Object.entries(topics)) {\n    if (data[key] !== undefined) {\n        msgs.push({ topic, payload: String(data[key]), qos: 0, retain: true });\n    }\n}\n\nif (msgs.length === 0) return null;\nreturn [msgs];\n",
     "outputs": 1,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
-    "x": 800,
+    "x": 1000,
     "y": 80,
     "wires": [["arkteos_debug_frigo_published", "arkteos_mqtt_out"]]
   },
@@ -139,13 +169,13 @@
     "type": "function",
     "z": "arkteos_flow",
     "name": "Publish regulation",
-    "func": "const data = msg.payload;\nconst msgs = [];\n\nconst sensors = [\n    { topic: 'arkteos/regulation/puissance_inst_produite',  value: data.puissance_inst_produite },\n    { topic: 'arkteos/regulation/puissance_inst_consommee', value: data.puissance_inst_consommee },\n    { topic: 'arkteos/regulation/primaire_temp_eau_aller',  value: data.primaire_temp_eau_aller },\n    { topic: 'arkteos/regulation/primaire_temp_eau_retour', value: data.primaire_temp_eau_retour },\n    { topic: 'arkteos/regulation/primaire_pression',        value: data.primaire_pression },\n    { topic: 'arkteos/regulation/zone1_temp_interieur',     value: data.zone1_temp_interieur },\n    { topic: 'arkteos/regulation/zone1_consigne',           value: data.zone1_consigne },\n    { topic: 'arkteos/regulation/ecs_temp_eau_milieu',      value: data.ecs_temp_eau_milieu },\n    { topic: 'arkteos/regulation/ecs_temp_eau_bas',         value: data.ecs_temp_eau_bas }\n];\n\nfor (const s of sensors) {\n    msgs.push({ topic: s.topic, payload: String(s.value), qos: 0, retain: true });\n}\n\nreturn [msgs];\n",
+    "func": "const data = msg.payload;\nconst msgs = [];\n\nconst topics = {\n    puissance_inst_produite:    'arkteos/regulation/puissance_inst_produite',\n    puissance_inst_consommee:   'arkteos/regulation/puissance_inst_consommee',\n    primaire_temp_eau_aller:    'arkteos/regulation/primaire_temp_eau_aller',\n    primaire_temp_eau_retour:   'arkteos/regulation/primaire_temp_eau_retour',\n    primaire_pression:          'arkteos/regulation/primaire_pression',\n    zone1_temp_interieur:       'arkteos/regulation/zone1_temp_interieur',\n    zone1_consigne:             'arkteos/regulation/zone1_consigne',\n    ecs_temp_eau_milieu:        'arkteos/regulation/ecs_temp_eau_milieu',\n    ecs_temp_eau_bas:           'arkteos/regulation/ecs_temp_eau_bas'\n};\n\nfor (const [key, topic] of Object.entries(topics)) {\n    if (data[key] !== undefined) {\n        msgs.push({ topic, payload: String(data[key]), qos: 0, retain: true });\n    }\n}\n\nif (msgs.length === 0) return null;\nreturn [msgs];\n",
     "outputs": 1,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
-    "x": 800,
+    "x": 1000,
     "y": 200,
     "wires": [["arkteos_debug_regulation_published", "arkteos_mqtt_out"]]
   },
@@ -162,7 +192,7 @@
     "targetType": "msg",
     "statusVal": "",
     "statusType": "auto",
-    "x": 1040,
+    "x": 1230,
     "y": 40,
     "wires": []
   },
@@ -179,7 +209,7 @@
     "targetType": "msg",
     "statusVal": "",
     "statusType": "auto",
-    "x": 1060,
+    "x": 1250,
     "y": 240,
     "wires": []
   },
@@ -192,7 +222,7 @@
     "qos": "0",
     "retain": "true",
     "broker": "arkteos_mqtt_broker",
-    "x": 1060,
+    "x": 1240,
     "y": 140,
     "wires": []
   },
