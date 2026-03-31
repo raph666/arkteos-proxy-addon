@@ -6,30 +6,61 @@ Permet les connexions simultanées de Node-RED et de l'application mobile Arkteo
 
 ## Installation
 
-1. Dans Home Assistant : **Paramètres → Modules complémentaires → Dépôts**
-2. Ajoute l'URL de ce repo : `https://github.com/raph666/arkteos-proxy-addon`
+1. Dans Home Assistant : **Paramètres → Modules complémentaires → trois points → Dépôts**
+2. Ajoute l'URL de ce repo : `https://github.com/<TON_GITHUB_USER>/arkteos-proxy-addon`
 3. Installe l'addon **Arkteos Proxy**
 4. Configure l'IP de ta PAC dans les options
-5. Démarre l'addon
+5. Configure le port exposé dans la section **Network** (défaut : 9641)
+6. Clique **Save** dans Network puis démarre l'addon
 
 ## Configuration
 
 | Option | Description | Défaut |
 |---|---|---|
-| `pac_host` | Adresse IP de la PAC | `192.168.X.X` |
+| `pac_host` | Adresse IP de la PAC | `192.168.1.112` |
 | `pac_port` | Port TCP de la PAC | `9641` |
-| `proxy_port` | Port d'écoute du proxy | `9641` |
+| `proxy_port` | Port d'écoute interne du proxy | `9641` |
 
-## Utilisation avec Node-RED
+## Intégration Node-RED
 
-Dans le nœud `tcp in` de Node-RED, connecte-toi à `IP_HA:<proxy_port>` au lieu de l'IP directe de la PAC.
+Un flow Node-RED prêt à l'emploi est disponible dans ce repo : `nodered/arkteos_reg3_nodered.json`.
+
+### Import
+
+1. Dans Node-RED : menu hamburger → **Import** → colle le contenu du fichier JSON
+2. Double-clique sur le nœud **PAC via proxy** et remplace `<IP_HA>` par l'IP de ton Home Assistant
+3. Double-clique sur le nœud **MQTT publish** → icône crayon → onglet **Security** → renseigne le login et mot de passe Mosquitto
+4. Clique **Deploy**
+
+### Entités créées dans HA
+
+Le flow publie automatiquement 12 entités via MQTT Discovery dans un appareil **PAC Arkteos Zuran 4** :
+
+**Groupe frigorifique**
+- Température extérieure (°C)
+- Fréquence compresseur actuelle (Hz)
+- Voltage DC compresseur (V)
+
+**Régulation**
+- Puissance instantanée produite (kW)
+- Puissance instantanée consommée (kW)
+- Température eau primaire aller (°C)
+- Température eau primaire retour (°C)
+- Pression eau primaire (bar)
+- Température intérieure zone 1 (°C)
+- Consigne température zone 1 (°C)
+- Température ballon ECS milieu (°C)
+- Température ballon ECS bas (°C)
 
 ## Protocole
 
 La PAC Arkteos REG3 expose un flux binaire TCP (serial-over-IP) sur le port 9641 (IHM).
-Trois types de trames sont émises en continu :
-- 163 bytes : données groupe frigorifique
-- 227 bytes : données régulation
-- 95 bytes : métadonnées réseau
+Trois types de trames sont émises en continu à environ 1 trame/seconde :
+
+| Taille | Type | Contenu |
+|---|---|---|
+| 163 bytes | Frigo | Données groupe frigorifique Mitsubishi |
+| 227 bytes | Régulation | Données régulation, températures, ECS |
+| 95 bytes | Réseau | Métadonnées de connexion (IP PAC, etc.) |
 
 Toutes les trames commencent par le magic bytes `0x55 0x00`.
