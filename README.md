@@ -17,7 +17,7 @@ Permet les connexions simultanées de Node-RED et de l'application mobile Arkteo
 
 | Option | Description | Défaut |
 |---|---|---|
-| `pac_host` | Adresse IP de la PAC | `192.168.1.112` |
+| `pac_host` | Adresse IP de la PAC | `192.168.X.X` |
 | `pac_port` | Port TCP de la PAC | `9641` |
 | `proxy_port` | Port d'écoute interne du proxy | `9641` |
 
