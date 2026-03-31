@@ -18,3 +18,7 @@ schema:
   pac_host: str
   pac_port: int
   proxy_port: int
+ports:
+  9641/tcp: 9641
+ports_description:
+  9641/tcp: Proxy TCP Arkteos
