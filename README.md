@@ -22,7 +22,7 @@ Permet les connexions simultanées de Node-RED et de l'application mobile Arkteo
 
 ## Utilisation avec Node-RED
 
-Dans le nœud `tcp in` de Node-RED, connecte-toi à `172.30.33.1:<proxy_port>` au lieu de l'IP directe de la PAC.
+Dans le nœud `tcp in` de Node-RED, connecte-toi à `IP_HA:<proxy_port>` au lieu de l'IP directe de la PAC.
 
 ## Protocole
 
