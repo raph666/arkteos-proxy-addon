@@ -10,8 +10,8 @@ Permet les connexions simultanées de Node-RED et de l'application mobile Arkteo
 2. Ajoute l'URL de ce repo : `https://github.com/raph666/arkteos-proxy-addon`
 3. Installe l'addon **Arkteos Proxy**
 4. Configure l'IP de ta PAC dans les options
-5. Configure le port exposé dans la section **Network** (défaut : 9641)
-6. Clique **Save** dans Network puis démarre l'addon
+5. Configure le port exposé dans la section **Network** (défaut : 9641) et clique **Save**
+6. Démarre l'addon
 
 ## Configuration
 
@@ -31,6 +31,21 @@ Un flow Node-RED prêt à l'emploi est disponible dans ce repo : `nodered/arkteo
 2. Double-clique sur le nœud **PAC via proxy** et remplace `<IP_HA>` par l'IP de ton Home Assistant
 3. Double-clique sur le nœud **MQTT publish** → icône crayon → onglet **Security** → renseigne le login et mot de passe Mosquitto
 4. Clique **Deploy**
+
+### Fonctionnement
+
+Le flow se connecte en streaming permanent au proxy. Chaque trame reçue est parsée et les valeurs sont publiées sur MQTT avec un système de throttling :
+
+- une valeur n'est publiée que si elle a changé au-delà d'un seuil défini
+- une publication forcée a lieu toutes les 30 ou 60 secondes même sans changement
+
+| Valeur | Seuil | Intervalle max |
+|---|---|---|
+| Températures | 0.5°C | 60s |
+| Puissances | 0.1 kW | 30s |
+| Pression | 0.1 bar | 60s |
+| Fréquence compresseur | 1 Hz | 30s |
+| Voltage DC | 5 V | 60s |
 
 ### Entités créées dans HA
 
