@@ -7,7 +7,7 @@ Permet les connexions simultanées de Node-RED et de l'application mobile Arkteo
 ## Installation
 
 1. Dans Home Assistant : **Paramètres → Modules complémentaires → trois points → Dépôts**
-2. Ajoute l'URL de ce repo : `https://github.com/<TON_GITHUB_USER>/arkteos-proxy-addon`
+2. Ajoute l'URL de ce repo : `https://github.com/raph666/arkteos-proxy-addon`
 3. Installe l'addon **Arkteos Proxy**
 4. Configure l'IP de ta PAC dans les options
 5. Configure le port exposé dans la section **Network** (défaut : 9641)
