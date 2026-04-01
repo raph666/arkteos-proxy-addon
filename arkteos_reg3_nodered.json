@@ -1,357 +1,448 @@
 [
   {
-    "id": "arkteos_flow",
+    "id": "4587847568fd2353",
     "type": "tab",
-    "label": "Arkteos REG3",
+    "label": "Solarwatt Local v6 MQTT",
     "disabled": false,
-    "info": "Intégration PAC Arkteos Zuran 4 via addon proxy.\nStreaming permanent sur <IP_HA>:9641.\nPublication MQTT avec discovery automatique HA, throttling, filtrage valeurs aberrantes et statuts.\nRemplacer <IP_HA> par l'IP de Home Assistant dans le nœud PAC via proxy."
+    "info": "Migration v5→v6 : remplacement des noeuds ha-sensor Companion par MQTT Discovery. Les entity_id HA sont identiques à la v5."
   },
   {
-    "id": "arkteos_mqtt_broker",
+    "id": "b2f1d497c83e5a12",
     "type": "mqtt-broker",
-    "name": "Mosquitto local Arkteos",
+    "name": "Mosquitto local Solarwatt",
     "broker": "core-mosquitto",
     "port": "1883",
-    "clientid": "nodered_arkteos",
+    "clientid": "nodered_solarwatt",
+    "autoConnect": true,
     "usetls": false,
     "compatmode": false,
+    "protocolVersion": 4,
     "keepalive": "60",
     "cleansession": true,
-    "birthTopic": "",
-    "birthQos": "0",
-    "birthPayload": "",
+    "autoUnsubscribe": true,
+    "birthTopic": "solarwatt/status",
+    "birthQos": "1",
+    "birthPayload": "online",
+    "birthMsg": {},
     "closeTopic": "",
     "closeQos": "0",
     "closePayload": "",
-    "willTopic": "",
-    "willQos": "0",
-    "willPayload": "",
-    "credentials": {
-      "user": "<MQTT_USER>",
-      "password": "<MQTT_PASSWORD>"
-    }
+    "closeMsg": {},
+    "willTopic": "solarwatt/status",
+    "willQos": "1",
+    "willPayload": "offline",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": "",
+    "willRetain": true,
+    "birthRetain": true
   },
   {
-    "id": "arkteos_tcp_in",
-    "type": "tcp in",
-    "z": "arkteos_flow",
-    "name": "PAC via proxy",
-    "server": "<IP_HA>",
-    "port": "9641",
-    "datamode": "stream",
-    "datatype": "buffer",
-    "newline": "",
+    "id": "770612abc2ebe36d",
+    "type": "inject",
+    "z": "4587847568fd2353",
+    "name": "Login au démarrage",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "3",
     "topic": "",
-    "trim": false,
-    "base64": false,
-    "tls": "",
-    "x": 160,
-    "y": 100,
+    "x": 140,
+    "y": 80,
     "wires": [
       [
-        "arkteos_watchdog",
-        "arkteos_parse_frame"
+        "8ffb0174365ed9be"
       ]
     ]
   },
   {
-    "id": "arkteos_watchdog",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Watchdog connexion",
-    "func": "flow.set('arkteos_last_frame', Date.now());\nflow.set('arkteos_connected', true);\nreturn null;\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "flow.set('arkteos_last_frame', 0);\nflow.set('arkteos_connected', false);\n",
-    "finalize": "",
-    "libs": [],
-    "x": 400,
-    "y": 40,
+    "id": "e2eb572a08473c56",
+    "type": "inject",
+    "z": "4587847568fd2353",
+    "name": "Refresh login 30 min",
+    "props": [],
+    "repeat": "1800",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0",
+    "topic": "",
+    "x": 140,
+    "y": 120,
     "wires": [
+      [
+        "8ffb0174365ed9be"
+      ]
+    ]
+  },
+  {
+    "id": "8ffb0174365ed9be",
+    "type": "exec",
+    "z": "4587847568fd2353",
+    "command": "curl -s -c /tmp/sw.cookie -A \"Mozilla/5.0\" http://192.168.1.110/logon.html -o /dev/null",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "",
+    "winHide": false,
+    "oldrc": false,
+    "name": "GET /logon.html",
+    "x": 390,
+    "y": 100,
+    "wires": [
+      [
+        "e5e188a8e9086896"
+      ],
+      [
+        "c4cc578945748c64"
+      ],
+      [
+        "fbe3f52862ebaca5"
+      ]
+    ]
+  },
+  {
+    "id": "e5e188a8e9086896",
+    "type": "exec",
+    "z": "4587847568fd2353",
+    "command": "curl -s -L -b /tmp/sw.cookie -c /tmp/sw.cookie -H \"Content-Type: application/x-www-form-urlencoded\" -H \"Referer: http://192.168.1.110/logon.html\" --data \"username=installer&url=%2F&password=hvpiimld&submit=Login\" http://192.168.1.110/auth/login -o /dev/null",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "",
+    "winHide": false,
+    "oldrc": false,
+    "name": "POST /auth/login",
+    "x": 620,
+    "y": 100,
+    "wires": [
+      [
+        "3c00344a6efd7589"
+      ],
+      [
+        "79a409c5565c37b2"
+      ],
+      [
+        "bfb5ac533e8d5120"
+      ]
+    ]
+  },
+  {
+    "id": "3c00344a6efd7589",
+    "type": "exec",
+    "z": "4587847568fd2353",
+    "command": "cat /tmp/sw.cookie",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "",
+    "winHide": false,
+    "oldrc": false,
+    "name": "Voir cookie",
+    "x": 840,
+    "y": 100,
+    "wires": [
+      [
+        "a2b17344e43630eb"
+      ],
+      [],
       []
     ]
   },
   {
-    "id": "arkteos_watchdog_check_inject",
-    "type": "inject",
-    "z": "arkteos_flow",
-    "name": "Check connexion toutes les 15s",
-    "props": [
-      {
-        "p": "payload"
-      }
-    ],
-    "repeat": "15",
-    "crontab": "",
-    "once": true,
-    "onceDelay": 10,
-    "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 180,
-    "y": 40,
-    "wires": [
-      [
-        "arkteos_watchdog_check"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_watchdog_check",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Check timeout",
-    "func": "const last = flow.get('arkteos_last_frame') || 0;\nconst connected = flow.get('arkteos_connected') || false;\nconst now = Date.now();\nconst elapsed = now - last;\nconst isConnected = last > 0 && elapsed < 30000;\n\nif (isConnected !== connected) {\n    flow.set('arkteos_connected', isConnected);\n    msg.payload = isConnected ? 'ON' : 'OFF';\n    msg.topic = 'arkteos/status/connected';\n    return msg;\n}\nif (elapsed % 60000 < 15000) {\n    msg.payload = isConnected ? 'ON' : 'OFF';\n    msg.topic = 'arkteos/status/connected';\n    return msg;\n}\nreturn null;\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 430,
-    "y": 40,
-    "wires": [
-      [
-        "arkteos_mqtt_out"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_parse_frame",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Parse frame",
-    "func": "const buf = msg.payload;\nif (!Buffer.isBuffer(buf) || buf.length === 0) return null;\n\nconst size = buf.length;\n\nfunction read16s(b, i) {\n    const v = b[i] + b[i + 1] * 256;\n    return v >= 32768 ? v - 65536 : v;\n}\nfunction read16u(b, i) {\n    return b[i] + b[i + 1] * 256;\n}\nfunction read8(b, i) {\n    return b[i];\n}\nfunction signExtend8(x) {\n    return (x ^ 0x80) - 0x80;\n}\n\nconst STATUTS_PAC = { 0: 'Arret', 1: 'Attente', 2: 'Chaud', 3: 'Froid', 4: 'Hors Gel', 5: 'Ext Chaud', 6: 'Ext Froid', 7: 'Chaud Froid', 8: 'ECS', 9: 'Piscine' };\nconst STATUTS_FRIGO = { 0: 'Arret', 1: 'Refroidissement', 2: 'Chauffage', 3: 'Degivrage' };\nconst MODELES_PAC = { 0x10: 'AJPAC_III', 0x11: 'BAGUIO_ZURAN_IV', 0x12: 'TIMAX_III', 0x13: 'GEOTWIN_IV', 0x14: 'CAIROX', 0x15: 'PHOENIX', 0x16: 'ARKTEA', 0x17: 'GEOINVERTER', 0x18: 'LAST_MODEL' };\n\nif (size === 163) {\n    const statut_frigo_raw = buf[36] >> 4;\n    const active_error_fri = buf[12] + (buf[13] & 0x0f) * 256;\n    msg.payload = {\n        frame_type: 'frigo',\n        exterieur_temp:         read16s(buf, 24) / 10,\n        nb_degivrages:          read16u(buf, 26),\n        temps_compresseur:      read16u(buf, 40) / 10,\n        nb_cycles_compresseur:  read16u(buf, 42) * 100,\n        freq_comp_actuelle:     read16u(buf, 52),\n        freq_comp_cible:        read16u(buf, 54),\n        fan_speed_evaporator_1: read16u(buf, 56),\n        dc_voltage:             read16u(buf, 62),\n        statut_frigo:           statut_frigo_raw,\n        statut_frigo_s:         STATUTS_FRIGO[statut_frigo_raw] || 'Inconnu',\n        active_error_fri:       active_error_fri\n    };\n    return msg;\n}\n\nif (size === 227) {\n    const statut_pac_raw = buf[12] & 0b11111;\n    const modele_raw = buf[46];\n    const active_error_reg = buf[30] + (buf[31] & 0x0f) * 256;\n    const signal_rf = signExtend8(buf[193]);\n    msg.payload = {\n        frame_type: 'regulation',\n        puissance_inst_produite:          read16u(buf, 16) / 0.1,\n        puissance_inst_consommee:         read16u(buf, 18) / 0.1,\n        temps_mise_sous_tension:          read16u(buf, 20),\n        modele_pac:                       modele_raw,\n        modele_pac_s:                     MODELES_PAC[modele_raw] || 'Inconnu',\n        primaire_temp_eau_aller_consigne: read16s(buf, 52) / 10,\n        primaire_temp_eau_aller:          read16s(buf, 54) / 10,\n        primaire_temp_eau_retour:         read16s(buf, 56) / 10,\n        primaire_debit_eau:               read16u(buf, 60) / 10,\n        primaire_pression:                read8(buf, 62) / 10,\n        primaire_circulateur_consigne:    read8(buf, 64),\n        zone1_temp_interieur:             read16s(buf, 68) / 10,\n        zone1_consigne:                   read16s(buf, 70) / 10,\n        ecs_temp_eau_milieu:              read16s(buf, 108) / 10,\n        ecs_temp_eau_bas:                 read16s(buf, 110) / 10,\n        ecs_consigne:                     read16s(buf, 122) / 10,\n        nb_cycles_compresseur_reg:        read16u(buf, 148),\n        statut_pac:                       statut_pac_raw,\n        statut_pac_s:                     STATUTS_PAC[statut_pac_raw] || 'Inconnu',\n        active_error_reg:                 active_error_reg,\n        signal_rf_sonde_1:                signal_rf\n    };\n    return msg;\n}\n\nreturn null;\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 380,
-    "y": 100,
-    "wires": [
-      [
-        "arkteos_filter_aberrant"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_filter_aberrant",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Filtre valeurs aberrantes",
-    "func": "const data = msg.payload;\n\nconst RANGES = {\n    exterieur_temp:                   { min: -50,   max: 150 },\n    nb_degivrages:                    { min: 0,     max: 99999 },\n    temps_compresseur:                { min: 0,     max: 999999 },\n    nb_cycles_compresseur:            { min: 0,     max: 9999999 },\n    freq_comp_actuelle:               { min: 0,     max: 200 },\n    freq_comp_cible:                  { min: 0,     max: 200 },\n    fan_speed_evaporator_1:           { min: 0,     max: 3000 },\n    dc_voltage:                       { min: 0,     max: 1000 },\n    statut_frigo:                     { min: 0,     max: 3 },\n    active_error_fri:                 { min: 0,     max: 65535 },\n    puissance_inst_produite:          { min: 0,     max: 50000 },\n    puissance_inst_consommee:         { min: 0,     max: 50000 },\n    temps_mise_sous_tension:          { min: 0,     max: 999999 },\n    primaire_temp_eau_aller_consigne: { min: -10,   max: 90 },\n    primaire_temp_eau_aller:          { min: -10,   max: 90 },\n    primaire_temp_eau_retour:         { min: -10,   max: 90 },\n    primaire_debit_eau:               { min: 0,     max: 10000 },\n    primaire_pression:                { min: 0,     max: 10 },\n    primaire_circulateur_consigne:    { min: 0,     max: 100 },\n    zone1_temp_interieur:             { min: -10,   max: 50 },\n    zone1_consigne:                   { min: 5,     max: 35 },\n    ecs_temp_eau_milieu:              { min: 0,     max: 95 },\n    ecs_temp_eau_bas:                 { min: 0,     max: 95 },\n    ecs_consigne:                     { min: 0,     max: 80 },\n    nb_cycles_compresseur_reg:        { min: 0,     max: 999999 },\n    statut_pac:                       { min: 0,     max: 9 },\n    active_error_reg:                 { min: 0,     max: 65535 },\n    signal_rf_sonde_1:                { min: -128,  max: 127 }\n};\n\nconst filtered = { frame_type: data.frame_type };\nconst rejected = {};\n\nfor (const [key, val] of Object.entries(data)) {\n    if (key === 'frame_type') continue;\n    // Valeurs texte : pas de filtre de plage\n    if (typeof val === 'string') {\n        filtered[key] = val;\n        continue;\n    }\n    const range = RANGES[key];\n    if (!range) {\n        filtered[key] = val;\n        continue;\n    }\n    if (val >= range.min && val <= range.max) {\n        filtered[key] = val;\n    } else {\n        rejected[key] = val;\n    }\n}\n\nif (Object.keys(rejected).length > 0) {\n    node.warn('Valeurs aberrantes filtrées : ' + JSON.stringify(rejected));\n}\n\nmsg.payload = filtered;\nreturn msg;\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 590,
-    "y": 100,
-    "wires": [
-      [
-        "arkteos_route"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_route",
-    "type": "switch",
-    "z": "arkteos_flow",
-    "name": "Route par type",
-    "property": "payload.frame_type",
-    "propertyType": "msg",
-    "rules": [
-      {
-        "t": "eq",
-        "v": "frigo",
-        "vt": "str"
-      },
-      {
-        "t": "eq",
-        "v": "regulation",
-        "vt": "str"
-      }
-    ],
-    "checkall": "false",
-    "repair": false,
-    "outputs": 2,
-    "x": 800,
-    "y": 100,
-    "wires": [
-      [
-        "arkteos_throttle_frigo"
-      ],
-      [
-        "arkteos_throttle_regulation"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_throttle_frigo",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Throttle frigo",
-    "func": "const THRESHOLDS = {\n    exterieur_temp:         0.5,\n    nb_degivrages:          1,\n    temps_compresseur:      1,\n    nb_cycles_compresseur:  100,\n    freq_comp_actuelle:     1,\n    freq_comp_cible:        1,\n    fan_speed_evaporator_1: 10,\n    dc_voltage:             5,\n    statut_frigo:           1,\n    active_error_fri:       1\n};\nconst MAX_INTERVALS = {\n    exterieur_temp:         60000,\n    nb_degivrages:          300000,\n    temps_compresseur:      300000,\n    nb_cycles_compresseur:  300000,\n    freq_comp_actuelle:     30000,\n    freq_comp_cible:        30000,\n    fan_speed_evaporator_1: 30000,\n    dc_voltage:             60000,\n    statut_frigo:           60000,\n    active_error_fri:       60000\n};\n\nconst now = Date.now();\nconst prev = context.get('prev') || {};\nconst lastPublished = context.get('lastPublished') || {};\nconst data = msg.payload;\nconst toPublish = {};\n\nfor (const key of Object.keys(THRESHOLDS)) {\n    const val = data[key];\n    if (val === undefined) continue;\n    const prevVal = prev[key];\n    const lastTs = lastPublished[key] || 0;\n    const isString = typeof val === 'string';\n    const delta = isString ? (val !== prevVal ? Infinity : 0) : (prevVal !== undefined ? Math.abs(val - prevVal) : Infinity);\n    const elapsed = now - lastTs;\n    if (delta >= THRESHOLDS[key] || elapsed >= MAX_INTERVALS[key]) {\n        toPublish[key] = val;\n        lastPublished[key] = now;\n        prev[key] = val;\n    }\n}\n\n// Toujours inclure statut_frigo_s si statut_frigo change\nif (toPublish.statut_frigo !== undefined) {\n    toPublish.statut_frigo_s = data.statut_frigo_s;\n}\n\ncontext.set('prev', prev);\ncontext.set('lastPublished', lastPublished);\n\nif (Object.keys(toPublish).length === 0) return null;\n\nmsg.payload = Object.assign({ frame_type: 'frigo' }, toPublish);\nreturn msg;\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 1010,
-    "y": 60,
-    "wires": [
-      [
-        "arkteos_debug_frigo_parsed",
-        "arkteos_publish_frigo"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_throttle_regulation",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Throttle regulation",
-    "func": "const THRESHOLDS = {\n    puissance_inst_produite:          10,\n    puissance_inst_consommee:         10,\n    temps_mise_sous_tension:          1,\n    primaire_temp_eau_aller_consigne: 0.5,\n    primaire_temp_eau_aller:          0.5,\n    primaire_temp_eau_retour:         0.5,\n    primaire_debit_eau:               1,\n    primaire_pression:                0.1,\n    primaire_circulateur_consigne:    1,\n    zone1_temp_interieur:             0.5,\n    zone1_consigne:                   0.5,\n    ecs_temp_eau_milieu:              0.5,\n    ecs_temp_eau_bas:                 0.5,\n    ecs_consigne:                     0.5,\n    nb_cycles_compresseur_reg:        1,\n    modele_pac:                       1,\n    statut_pac:                       1,\n    active_error_reg:                 1,\n    signal_rf_sonde_1:                1\n};\nconst MAX_INTERVALS = {\n    puissance_inst_produite:          30000,\n    puissance_inst_consommee:         30000,\n    temps_mise_sous_tension:          300000,\n    primaire_temp_eau_aller_consigne: 60000,\n    primaire_temp_eau_aller:          60000,\n    primaire_temp_eau_retour:         60000,\n    primaire_debit_eau:               60000,\n    primaire_pression:                60000,\n    primaire_circulateur_consigne:    60000,\n    zone1_temp_interieur:             60000,\n    zone1_consigne:                   60000,\n    ecs_temp_eau_milieu:              60000,\n    ecs_temp_eau_bas:                 60000,\n    ecs_consigne:                     60000,\n    nb_cycles_compresseur_reg:        300000,\n    modele_pac:                       3600000,\n    statut_pac:                       60000,\n    active_error_reg:                 60000,\n    signal_rf_sonde_1:                300000\n};\n\nconst now = Date.now();\nconst prev = context.get('prev') || {};\nconst lastPublished = context.get('lastPublished') || {};\nconst data = msg.payload;\nconst toPublish = {};\n\nfor (const key of Object.keys(THRESHOLDS)) {\n    const val = data[key];\n    if (val === undefined) continue;\n    const prevVal = prev[key];\n    const lastTs = lastPublished[key] || 0;\n    const delta = prevVal !== undefined ? Math.abs(val - prevVal) : Infinity;\n    const elapsed = now - lastTs;\n    if (delta >= THRESHOLDS[key] || elapsed >= MAX_INTERVALS[key]) {\n        toPublish[key] = val;\n        lastPublished[key] = now;\n        prev[key] = val;\n    }\n}\n\n// Toujours inclure statut_pac_s et modele_pac_s si les valeurs numériques changent\nif (toPublish.statut_pac !== undefined) {\n    toPublish.statut_pac_s = data.statut_pac_s;\n}\nif (toPublish.modele_pac !== undefined) {\n    toPublish.modele_pac_s = data.modele_pac_s;\n}\n\ncontext.set('prev', prev);\ncontext.set('lastPublished', lastPublished);\n\nif (Object.keys(toPublish).length === 0) return null;\n\nmsg.payload = Object.assign({ frame_type: 'regulation' }, toPublish);\nreturn msg;\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 1010,
-    "y": 140,
-    "wires": [
-      [
-        "arkteos_debug_regulation_parsed",
-        "arkteos_publish_regulation"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_debug_frigo_parsed",
+    "id": "a2b17344e43630eb",
     "type": "debug",
-    "z": "arkteos_flow",
-    "name": "Frigo parsé",
-    "active": true,
+    "z": "4587847568fd2353",
+    "name": "DEBUG cookie file",
+    "active": false,
     "tosidebar": true,
     "console": false,
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 1230,
+    "x": 1040,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "c4cc578945748c64",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "GET logon stderr",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 390,
     "y": 40,
     "wires": []
   },
   {
-    "id": "arkteos_debug_regulation_parsed",
+    "id": "fbe3f52862ebaca5",
     "type": "debug",
-    "z": "arkteos_flow",
-    "name": "Regulation parsée",
-    "active": true,
+    "z": "4587847568fd2353",
+    "name": "GET logon rc",
+    "active": false,
     "tosidebar": true,
     "console": false,
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 1250,
+    "x": 380,
     "y": 160,
     "wires": []
   },
   {
-    "id": "arkteos_publish_frigo",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Publish frigo",
-    "func": "const data = msg.payload;\nconst topics = {\n    exterieur_temp:         'arkteos/frigo/exterieur_temp',\n    nb_degivrages:          'arkteos/frigo/nb_degivrages',\n    temps_compresseur:      'arkteos/frigo/temps_compresseur',\n    nb_cycles_compresseur:  'arkteos/frigo/nb_cycles_compresseur',\n    freq_comp_actuelle:     'arkteos/frigo/freq_comp_actuelle',\n    freq_comp_cible:        'arkteos/frigo/freq_comp_cible',\n    fan_speed_evaporator_1: 'arkteos/frigo/fan_speed_evaporator_1',\n    dc_voltage:             'arkteos/frigo/dc_voltage',\n    statut_frigo:           'arkteos/frigo/statut_frigo',\n    statut_frigo_s:         'arkteos/frigo/statut_frigo_s',\n    active_error_fri:       'arkteos/frigo/active_error_fri'\n};\n\nconst msgs = [];\nfor (const [key, topic] of Object.entries(topics)) {\n    if (data[key] !== undefined) {\n        msgs.push({ topic, payload: String(data[key]), qos: 0, retain: true });\n    }\n}\n\nif (msgs.length === 0) return null;\nreturn [msgs];\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 1230,
-    "y": 80,
-    "wires": [
-      [
-        "arkteos_debug_frigo_published",
-        "arkteos_mqtt_out"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_publish_regulation",
-    "type": "function",
-    "z": "arkteos_flow",
-    "name": "Publish regulation",
-    "func": "const data = msg.payload;\nconst topics = {\n    puissance_inst_produite:          'arkteos/regulation/puissance_inst_produite',\n    puissance_inst_consommee:         'arkteos/regulation/puissance_inst_consommee',\n    temps_mise_sous_tension:          'arkteos/regulation/temps_mise_sous_tension',\n    modele_pac:                       'arkteos/regulation/modele_pac',\n    modele_pac_s:                     'arkteos/regulation/modele_pac_s',\n    primaire_temp_eau_aller_consigne: 'arkteos/regulation/primaire_temp_eau_aller_consigne',\n    primaire_temp_eau_aller:          'arkteos/regulation/primaire_temp_eau_aller',\n    primaire_temp_eau_retour:         'arkteos/regulation/primaire_temp_eau_retour',\n    primaire_debit_eau:               'arkteos/regulation/primaire_debit_eau',\n    primaire_pression:                'arkteos/regulation/primaire_pression',\n    primaire_circulateur_consigne:    'arkteos/regulation/primaire_circulateur_consigne',\n    zone1_temp_interieur:             'arkteos/regulation/zone1_temp_interieur',\n    zone1_consigne:                   'arkteos/regulation/zone1_consigne',\n    ecs_temp_eau_milieu:              'arkteos/regulation/ecs_temp_eau_milieu',\n    ecs_temp_eau_bas:                 'arkteos/regulation/ecs_temp_eau_bas',\n    ecs_consigne:                     'arkteos/regulation/ecs_consigne',\n    nb_cycles_compresseur_reg:        'arkteos/regulation/nb_cycles_compresseur',\n    statut_pac:                       'arkteos/regulation/statut_pac',\n    statut_pac_s:                     'arkteos/regulation/statut_pac_s',\n    active_error_reg:                 'arkteos/regulation/active_error_reg',\n    signal_rf_sonde_1:                'arkteos/regulation/signal_rf_sonde_1'\n};\n\nconst msgs = [];\nfor (const [key, topic] of Object.entries(topics)) {\n    if (data[key] !== undefined) {\n        msgs.push({ topic, payload: String(data[key]), qos: 0, retain: true });\n    }\n}\n\nif (msgs.length === 0) return null;\nreturn [msgs];\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 1230,
-    "y": 200,
-    "wires": [
-      [
-        "arkteos_debug_regulation_published",
-        "arkteos_mqtt_out"
-      ]
-    ]
-  },
-  {
-    "id": "arkteos_debug_frigo_published",
+    "id": "79a409c5565c37b2",
     "type": "debug",
-    "z": "arkteos_flow",
-    "name": "Frigo MQTT publié",
+    "z": "4587847568fd2353",
+    "name": "POST login stderr",
     "active": false,
     "tosidebar": true,
     "console": false,
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 1460,
+    "x": 630,
     "y": 40,
     "wires": []
   },
   {
-    "id": "arkteos_debug_regulation_published",
+    "id": "bfb5ac533e8d5120",
     "type": "debug",
-    "z": "arkteos_flow",
-    "name": "Regulation MQTT publiée",
+    "z": "4587847568fd2353",
+    "name": "POST login rc",
     "active": false,
     "tosidebar": true,
     "console": false,
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 1480,
-    "y": 240,
+    "x": 620,
+    "y": 160,
     "wires": []
   },
   {
-    "id": "arkteos_mqtt_out",
-    "type": "mqtt out",
-    "z": "arkteos_flow",
-    "name": "MQTT publish",
-    "topic": "",
-    "qos": "0",
-    "retain": "true",
-    "broker": "arkteos_mqtt_broker",
-    "x": 1460,
-    "y": 140,
-    "wires": []
-  },
-  {
-    "id": "arkteos_discovery_inject",
+    "id": "70ad92976ba19345",
     "type": "inject",
-    "z": "arkteos_flow",
-    "name": "Send discovery (1x au démarrage)",
+    "z": "4587847568fd2353",
+    "name": "Poll energy 15s",
+    "props": [],
+    "repeat": "15",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "8",
+    "topic": "",
+    "x": 120,
+    "y": 1100,
+    "wires": [
+      [
+        "236adc97608b73f6"
+      ]
+    ]
+  },
+  {
+    "id": "236adc97608b73f6",
+    "type": "exec",
+    "z": "4587847568fd2353",
+    "command": "curl -s -b /tmp/sw.cookie \"http://192.168.1.110/rest/hems-configurator/energy-overview?kg_session_extend=false\"",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "",
+    "winHide": false,
+    "oldrc": false,
+    "name": "GET energy-overview",
+    "x": 380,
+    "y": 1100,
+    "wires": [
+      [
+        "f4f9d2dadc100f93",
+        "56941a627669dee7"
+      ],
+      [
+        "9908ece2c4f23f1f"
+      ],
+      [
+        "98b0f0acd301348c"
+      ]
+    ]
+  },
+  {
+    "id": "56941a627669dee7",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "DEBUG energy JSON",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 610,
+    "y": 1060,
+    "wires": []
+  },
+  {
+    "id": "9908ece2c4f23f1f",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "energy stderr",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 380,
+    "y": 1160,
+    "wires": []
+  },
+  {
+    "id": "98b0f0acd301348c",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "energy rc",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 370,
+    "y": 1200,
+    "wires": []
+  },
+  {
+    "id": "f4f9d2dadc100f93",
+    "type": "function",
+    "z": "4587847568fd2353",
+    "name": "Parse energy-overview → MQTT",
+    "func": "let d;\ntry {\n    d = JSON.parse(msg.payload);\n} catch (e) {\n    node.error('Réponse non JSON sur energy-overview', msg);\n    return null;\n}\n\nconst pv          = Number(d.production || 0);\nconst gridExport  = Number(d.feedIn || 0);\nconst gridImport  = Number(d.feedOut || 0);\nconst home        = Number(d.householdConsumption || 0);\nconst battCharge  = Number(d.storagePowerIn || 0);\nconst battDischarge = Number(d.storagePowerOut || 0);\nconst battNet     = battDischarge - battCharge;\n\nconst vals = {\n    pv_power:               pv,\n    home_power:             home,\n    grid_import_power:      gridImport,\n    grid_export_power:      gridExport,\n    battery_charge_power:   battCharge,\n    battery_discharge_power: battDischarge,\n    battery_power_net:      battNet\n};\n\nfor (const [k, v] of Object.entries(vals)) {\n    node.send({ topic: 'solarwatt/' + k, payload: String(v), retain: true, qos: 0 });\n}\nreturn null;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 650,
+    "y": 1100,
+    "wires": [
+      [
+        "mqtt_energy_out"
+      ]
+    ]
+  },
+  {
+    "id": "232a734730b9a103",
+    "type": "inject",
+    "z": "4587847568fd2353",
+    "name": "Poll items 60s",
+    "props": [],
+    "repeat": "60",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "10",
+    "topic": "",
+    "x": 120,
+    "y": 1400,
+    "wires": [
+      [
+        "21dcfb1be4476c47"
+      ]
+    ]
+  },
+  {
+    "id": "21dcfb1be4476c47",
+    "type": "exec",
+    "z": "4587847568fd2353",
+    "command": "curl -s -b /tmp/sw.cookie \"http://192.168.1.110/rest/items?kg_session_extend=false\"",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "",
+    "winHide": false,
+    "oldrc": false,
+    "name": "GET items",
+    "x": 350,
+    "y": 1400,
+    "wires": [
+      [
+        "684586d0793ae559",
+        "62bf7d3832073206"
+      ],
+      [
+        "1edc91a8e6142d1c"
+      ],
+      [
+        "696ce5dfaa450e23"
+      ]
+    ]
+  },
+  {
+    "id": "62bf7d3832073206",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "DEBUG items JSON",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 600,
+    "y": 1360,
+    "wires": []
+  },
+  {
+    "id": "1edc91a8e6142d1c",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "items stderr",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 350,
+    "y": 1460,
+    "wires": []
+  },
+  {
+    "id": "696ce5dfaa450e23",
+    "type": "debug",
+    "z": "4587847568fd2353",
+    "name": "items rc",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 340,
+    "y": 1500,
+    "wires": []
+  },
+  {
+    "id": "684586d0793ae559",
+    "type": "function",
+    "z": "4587847568fd2353",
+    "name": "Parse items totals → MQTT",
+    "func": "function findItem(items, name) {\n  return items.find(i => i.name === name);\n}\n\nfunction parseNumber(raw) {\n  if (raw === null || raw === undefined) return null;\n  let s = String(raw).trim();\n  if (!s) return null;\n  if (s.includes('|')) s = s.split('|')[1].trim();\n  s = s.split(' ')[0].replace(',', '.');\n  const n = Number(s);\n  return Number.isFinite(n) ? n : null;\n}\n\nlet items;\ntry {\n  items = JSON.parse(msg.payload);\n} catch (e) {\n  node.error('Réponse non JSON sur items', msg);\n  return null;\n}\n\nconst map = {\n  battery_soc:                    'foxesshybrid_battery_2R8H602058HP023_battery_bms_soc',\n  produced_total:                  'kiwigrid_location_standard_1823d84e3054_harmonized_work_produced_total',\n  grid_import_total:               'kiwigrid_location_standard_1823d84e3054_harmonized_work_consumed_from_grid_total',\n  grid_export_total:               'kiwigrid_location_standard_1823d84e3054_harmonized_work_out_total',\n  home_consumption_total:          'kiwigrid_location_standard_1823d84e3054_harmonized_work_consumed_total',\n  self_consumed_total:             'kiwigrid_location_standard_1823d84e3054_harmonized_work_self_consumed_total',\n  battery_charged_from_grid_total: 'kiwigrid_location_standard_1823d84e3054_harmonized_work_buffered_from_grid_total',\n  battery_out_total_site:          'kiwigrid_location_standard_1823d84e3054_harmonized_work_out_from_storage_total',\n  battery_charge_total_raw:        'foxesshybrid_battery_2R8H602058HP023_battery_work_in_total',\n  battery_discharge_total_raw:     'foxesshybrid_battery_2R8H602058HP023_battery_work_out_total',\n  battery_temperature:             'foxesshybrid_battery_2R8H602058HP023_battery_bms_1_temperature',\n  battery_power_raw:               'foxesshybrid_battery_2R8H602058HP023_battery_battery_calculated_power',\n  battery_mode:                    'foxesshybrid_battery_2R8H602058HP023_battery_mode'\n};\n\nfor (const [key, itemName] of Object.entries(map)) {\n  const item = findItem(items, itemName);\n  if (!item) continue;\n\n  let value;\n  if (key === 'battery_mode') {\n    value = String(item.state || '');\n  } else {\n    value = parseNumber(item.state);\n    if (value !== null && String(item.state || '').includes(' Wh')) {\n      value = value / 1000;\n    }\n    if (value === null) continue;\n    value = String(value);\n  }\n\n  node.send({ topic: 'solarwatt/' + key, payload: value, retain: true, qos: 0 });\n}\nreturn null;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 650,
+    "y": 1400,
+    "wires": [
+      [
+        "mqtt_items_out"
+      ]
+    ]
+  },
+  {
+    "id": "inj_avail_online",
+    "type": "inject",
+    "z": "4587847568fd2353",
+    "name": "Availability online",
     "props": [
       {
         "p": "payload"
@@ -360,53 +451,123 @@
     "repeat": "",
     "crontab": "",
     "once": true,
-    "onceDelay": 3,
+    "onceDelay": "2",
     "topic": "",
-    "payload": "",
-    "payloadType": "date",
-    "x": 200,
-    "y": 460,
+    "payload": "online",
+    "payloadType": "str",
+    "x": 160,
+    "y": 1060,
     "wires": [
       [
-        "arkteos_discovery"
+        "mqtt_avail_out"
       ]
     ]
   },
   {
-    "id": "arkteos_discovery",
+    "id": "mqtt_avail_out",
+    "type": "mqtt out",
+    "z": "4587847568fd2353",
+    "name": "MQTT availability",
+    "topic": "solarwatt/status",
+    "qos": "1",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b2f1d497c83e5a12",
+    "x": 400,
+    "y": 1060,
+    "wires": []
+  },
+  {
+    "id": "inj_discovery",
+    "type": "inject",
+    "z": "4587847568fd2353",
+    "name": "MQTT Discovery au démarrage",
+    "props": [],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "x": 160,
+    "y": 200,
+    "wires": [
+      [
+        "disc_consolidated_fn"
+      ]
+    ]
+  },
+  {
+    "id": "disc_consolidated_fn",
     "type": "function",
-    "z": "arkteos_flow",
-    "name": "MQTT Discovery",
-    "func": "const device = {\n    identifiers: ['arkteos_zuran4'],\n    name: 'PAC Arkteos Zuran 4',\n    model: 'Zuran 4',\n    manufacturer: 'Arkteos'\n};\n\nconst sensors = [\n    // Statut connexion\n    { _type: 'binary_sensor', unique_id: 'arkteos_connected', name: 'PAC connectée', state_topic: 'arkteos/status/connected', device_class: 'connectivity', payload_on: 'ON', payload_off: 'OFF' },\n    // Frigo\n    { unique_id: 'arkteos_exterieur_temp', name: 'Température extérieure', state_topic: 'arkteos/frigo/exterieur_temp', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_nb_degivrages', name: 'Nombre de dégivrages', state_topic: 'arkteos/frigo/nb_degivrages', state_class: 'total_increasing' },\n    { unique_id: 'arkteos_temps_compresseur', name: 'Temps fonctionnement compresseur', state_topic: 'arkteos/frigo/temps_compresseur', unit_of_measurement: 'h', device_class: 'duration', state_class: 'total_increasing' },\n    { unique_id: 'arkteos_nb_cycles_compresseur', name: 'Nombre de cycles compresseur', state_topic: 'arkteos/frigo/nb_cycles_compresseur', state_class: 'total_increasing' },\n    { unique_id: 'arkteos_freq_comp_actuelle', name: 'Fréquence compresseur actuelle', state_topic: 'arkteos/frigo/freq_comp_actuelle', unit_of_measurement: 'Hz', state_class: 'measurement' },\n    { unique_id: 'arkteos_freq_comp_cible', name: 'Fréquence compresseur cible', state_topic: 'arkteos/frigo/freq_comp_cible', unit_of_measurement: 'Hz', state_class: 'measurement' },\n    { unique_id: 'arkteos_fan_speed_evaporator_1', name: 'Vitesse ventilateur groupe frigo', state_topic: 'arkteos/frigo/fan_speed_evaporator_1', unit_of_measurement: 'rpm', state_class: 'measurement' },\n    { unique_id: 'arkteos_dc_voltage', name: 'Voltage DC compresseur', state_topic: 'arkteos/frigo/dc_voltage', unit_of_measurement: 'V', device_class: 'voltage', state_class: 'measurement' },\n    { unique_id: 'arkteos_statut_frigo', name: 'Statut frigo', state_topic: 'arkteos/frigo/statut_frigo', state_class: 'measurement' },\n    { unique_id: 'arkteos_statut_frigo_s', name: 'Statut frigo (texte)', state_topic: 'arkteos/frigo/statut_frigo_s' },\n    { unique_id: 'arkteos_active_error_fri', name: 'Erreur active frigo', state_topic: 'arkteos/frigo/active_error_fri', state_class: 'measurement' },\n    // Regulation\n    { unique_id: 'arkteos_puissance_inst_produite', name: 'Puissance instantanée produite', state_topic: 'arkteos/regulation/puissance_inst_produite', unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' },\n    { unique_id: 'arkteos_puissance_inst_consommee', name: 'Puissance instantanée consommée', state_topic: 'arkteos/regulation/puissance_inst_consommee', unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' },\n    { unique_id: 'arkteos_temps_mise_sous_tension', name: 'Temps mise sous tension', state_topic: 'arkteos/regulation/temps_mise_sous_tension', unit_of_measurement: 'h', device_class: 'duration', state_class: 'total_increasing' },\n    { unique_id: 'arkteos_modele_pac_s', name: 'Modèle PAC', state_topic: 'arkteos/regulation/modele_pac_s' },\n    { unique_id: 'arkteos_primaire_temp_eau_aller_consigne', name: 'Consigne départ eau primaire', state_topic: 'arkteos/regulation/primaire_temp_eau_aller_consigne', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_primaire_temp_eau_aller', name: 'Température eau primaire aller', state_topic: 'arkteos/regulation/primaire_temp_eau_aller', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_primaire_temp_eau_retour', name: 'Température eau primaire retour', state_topic: 'arkteos/regulation/primaire_temp_eau_retour', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_primaire_debit_eau', name: 'Débit eau primaire', state_topic: 'arkteos/regulation/primaire_debit_eau', unit_of_measurement: 'L/h', state_class: 'measurement' },\n    { unique_id: 'arkteos_primaire_pression', name: 'Pression eau primaire', state_topic: 'arkteos/regulation/primaire_pression', unit_of_measurement: 'bar', device_class: 'pressure', state_class: 'measurement' },\n    { unique_id: 'arkteos_primaire_circulateur_consigne', name: 'Circulateur primaire', state_topic: 'arkteos/regulation/primaire_circulateur_consigne', unit_of_measurement: '%', state_class: 'measurement' },\n    { unique_id: 'arkteos_zone1_temp_interieur', name: 'Température intérieure zone 1', state_topic: 'arkteos/regulation/zone1_temp_interieur', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_zone1_consigne', name: 'Consigne température zone 1', state_topic: 'arkteos/regulation/zone1_consigne', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_ecs_temp_eau_milieu', name: 'Température ballon ECS milieu', state_topic: 'arkteos/regulation/ecs_temp_eau_milieu', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_ecs_temp_eau_bas', name: 'Température ballon ECS bas', state_topic: 'arkteos/regulation/ecs_temp_eau_bas', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_ecs_consigne', name: 'Consigne ECS', state_topic: 'arkteos/regulation/ecs_consigne', unit_of_measurement: '°C', device_class: 'temperature', state_class: 'measurement' },\n    { unique_id: 'arkteos_nb_cycles_compresseur_reg', name: 'Cycles compresseur (régulation)', state_topic: 'arkteos/regulation/nb_cycles_compresseur', state_class: 'total_increasing' },\n    { unique_id: 'arkteos_statut_pac', name: 'Statut PAC', state_topic: 'arkteos/regulation/statut_pac', state_class: 'measurement' },\n    { unique_id: 'arkteos_statut_pac_s', name: 'Statut PAC (texte)', state_topic: 'arkteos/regulation/statut_pac_s' },\n    { unique_id: 'arkteos_active_error_reg', name: 'Erreur active régulation', state_topic: 'arkteos/regulation/active_error_reg', state_class: 'measurement' },\n    { unique_id: 'arkteos_signal_rf_sonde_1', name: 'Signal RF sonde zone 1', state_topic: 'arkteos/regulation/signal_rf_sonde_1', unit_of_measurement: 'dBm', state_class: 'measurement' }\n];\n\nconst msgs = [];\nfor (const s of sensors) {\n    const type = s._type || 'sensor';\n    const config = Object.assign({}, s, { device });\n    delete config._type;\n    msgs.push({\n        topic: `homeassistant/${type}/${s.unique_id}/config`,\n        payload: JSON.stringify(config),\n        qos: 0,\n        retain: true\n    });\n}\n\nreturn [msgs];\n",
+    "z": "4587847568fd2353",
+    "name": "MQTT Discovery — 20 capteurs",
+    "func": "node.send({ topic: \"homeassistant/sensor/solarwatt_pv_power/config\", payload: JSON.stringify({\"name\": \"Solarwatt PV Power\", \"unique_id\": \"solarwatt_pv_power\", \"state_topic\": \"solarwatt/pv_power\", \"icon\": \"mdi:solar-power\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_pv_power\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_home_power/config\", payload: JSON.stringify({\"name\": \"Solarwatt Home Power\", \"unique_id\": \"solarwatt_home_power\", \"state_topic\": \"solarwatt/home_power\", \"icon\": \"mdi:home-lightning-bolt\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_home_power\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_grid_import_power/config\", payload: JSON.stringify({\"name\": \"Solarwatt Grid Import Power\", \"unique_id\": \"solarwatt_grid_import_power\", \"state_topic\": \"solarwatt/grid_import_power\", \"icon\": \"mdi:transmission-tower-import\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_grid_import_power\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_grid_export_power/config\", payload: JSON.stringify({\"name\": \"Solarwatt Grid Export Power\", \"unique_id\": \"solarwatt_grid_export_power\", \"state_topic\": \"solarwatt/grid_export_power\", \"icon\": \"mdi:transmission-tower-export\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_grid_export_power\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_charge_power/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Charge Power\", \"unique_id\": \"solarwatt_battery_charge_power\", \"state_topic\": \"solarwatt/battery_charge_power\", \"icon\": \"mdi:battery-arrow-up\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_battery_charge_power\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_discharge_power/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Discharge Power\", \"unique_id\": \"solarwatt_battery_discharge_power\", \"state_topic\": \"solarwatt/battery_discharge_power\", \"icon\": \"mdi:battery-arrow-down\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_battery_discharge_power\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_power_net/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Power Net\", \"unique_id\": \"solarwatt_battery_power_net\", \"state_topic\": \"solarwatt/battery_power_net\", \"icon\": \"mdi:battery-high\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_battery_power_net\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_power_raw/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Power Raw\", \"unique_id\": \"solarwatt_battery_power_raw\", \"state_topic\": \"solarwatt/battery_power_raw\", \"icon\": \"mdi:battery-heart-variant\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"W\", \"device_class\": \"power\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_battery_power_raw\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_soc/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery SOC\", \"unique_id\": \"solarwatt_battery_soc\", \"state_topic\": \"solarwatt/battery_soc\", \"icon\": \"mdi:battery\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"%\", \"device_class\": \"battery\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_battery_soc\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_temperature/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Temperature\", \"unique_id\": \"solarwatt_battery_temperature\", \"state_topic\": \"solarwatt/battery_temperature\", \"icon\": \"mdi:thermometer\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"C\", \"device_class\": \"temperature\", \"state_class\": \"measurement\", \"object_id\": \"solarwatt_battery_temperature\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_mode/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Mode\", \"unique_id\": \"solarwatt_battery_mode\", \"state_topic\": \"solarwatt/battery_mode\", \"icon\": \"mdi:home-battery-outline\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"object_id\": \"solarwatt_battery_mode\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_produced_total/config\", payload: JSON.stringify({\"name\": \"Solarwatt Produced Total\", \"unique_id\": \"solarwatt_produced_total\", \"state_topic\": \"solarwatt/produced_total\", \"icon\": \"mdi:solar-power-variant\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_produced_total\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_grid_import_total/config\", payload: JSON.stringify({\"name\": \"Solarwatt Grid Import Total\", \"unique_id\": \"solarwatt_grid_import_total\", \"state_topic\": \"solarwatt/grid_import_total\", \"icon\": \"mdi:transmission-tower-import\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_grid_import_total\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_grid_export_total/config\", payload: JSON.stringify({\"name\": \"Solarwatt Grid Export Total\", \"unique_id\": \"solarwatt_grid_export_total\", \"state_topic\": \"solarwatt/grid_export_total\", \"icon\": \"mdi:transmission-tower-export\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_grid_export_total\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_home_consumption_total/config\", payload: JSON.stringify({\"name\": \"Solarwatt Home Consumption Total\", \"unique_id\": \"solarwatt_home_consumption_total\", \"state_topic\": \"solarwatt/home_consumption_total\", \"icon\": \"mdi:home-lightning-bolt\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_home_consumption_total\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_self_consumed_total/config\", payload: JSON.stringify({\"name\": \"Solarwatt Self Consumed Total\", \"unique_id\": \"solarwatt_self_consumed_total\", \"state_topic\": \"solarwatt/self_consumed_total\", \"icon\": \"mdi:flash\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_self_consumed_total\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_charged_from_grid_total/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Charged From Grid Total\", \"unique_id\": \"solarwatt_battery_charged_from_grid_total\", \"state_topic\": \"solarwatt/battery_charged_from_grid_total\", \"icon\": \"mdi:battery-charging\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_battery_charged_from_grid_total\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_out_total_site/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Out Total Site\", \"unique_id\": \"solarwatt_battery_out_total_site\", \"state_topic\": \"solarwatt/battery_out_total_site\", \"icon\": \"mdi:battery-arrow-up\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_battery_out_total_site\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_charge_total_raw/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Charge Total Raw\", \"unique_id\": \"solarwatt_battery_charge_total_raw\", \"state_topic\": \"solarwatt/battery_charge_total_raw\", \"icon\": \"mdi:battery-plus\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_battery_charge_total_raw\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nnode.send({ topic: \"homeassistant/sensor/solarwatt_battery_discharge_total_raw/config\", payload: JSON.stringify({\"name\": \"Solarwatt Battery Discharge Total Raw\", \"unique_id\": \"solarwatt_battery_discharge_total_raw\", \"state_topic\": \"solarwatt/battery_discharge_total_raw\", \"icon\": \"mdi:battery-minus\", \"device\": {\"identifiers\": [\"solarwatt\"], \"name\": \"PV Solarwatt\", \"manufacturer\": \"Solarwatt / KiwiGrid / FoxESS\", \"model\": \"Solarwatt Energy Manager\", \"hw_version\": \"Battery Vision One\", \"sw_version\": \"mqtt-v1\"}, \"unit_of_measurement\": \"kWh\", \"device_class\": \"energy\", \"state_class\": \"total_increasing\", \"object_id\": \"solarwatt_battery_discharge_total_raw\", \"availability_topic\": \"solarwatt/status\", \"payload_available\": \"online\", \"payload_not_available\": \"offline\"}), retain: true, qos: 1 });\nreturn null;",
     "outputs": 1,
     "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 480,
-    "y": 460,
+    "x": 450,
+    "y": 200,
     "wires": [
       [
-        "arkteos_debug_discovery",
-        "arkteos_mqtt_out"
+        "disc_consolidated_out"
       ]
     ]
   },
   {
-    "id": "arkteos_debug_discovery",
-    "type": "debug",
-    "z": "arkteos_flow",
-    "name": "Discovery MQTT",
-    "active": true,
-    "tosidebar": true,
-    "console": false,
-    "tostatus": false,
-    "complete": "payload",
-    "targetType": "msg",
-    "statusVal": "",
-    "statusType": "auto",
-    "x": 710,
-    "y": 520,
+    "id": "disc_consolidated_out",
+    "type": "mqtt out",
+    "z": "4587847568fd2353",
+    "name": "MQTT Discovery out",
+    "topic": "",
+    "qos": "1",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b2f1d497c83e5a12",
+    "x": 730,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "mqtt_energy_out",
+    "type": "mqtt out",
+    "z": "4587847568fd2353",
+    "name": "MQTT energy values",
+    "topic": "",
+    "qos": "0",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b2f1d497c83e5a12",
+    "x": 950,
+    "y": 1100,
+    "wires": []
+  },
+  {
+    "id": "mqtt_items_out",
+    "type": "mqtt out",
+    "z": "4587847568fd2353",
+    "name": "MQTT items values",
+    "topic": "",
+    "qos": "0",
+    "retain": "true",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "b2f1d497c83e5a12",
+    "x": 950,
+    "y": 1400,
     "wires": []
   }
 ]
