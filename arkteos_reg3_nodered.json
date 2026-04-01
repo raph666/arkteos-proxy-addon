@@ -9,7 +9,7 @@
   {
     "id": "arkteos_mqtt_broker",
     "type": "mqtt-broker",
-    "name": "Mosquitto local",
+    "name": "Mosquitto local Arkteos",
     "broker": "core-mosquitto",
     "port": "1883",
     "clientid": "nodered_arkteos",
