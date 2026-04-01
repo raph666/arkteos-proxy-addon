@@ -47,7 +47,12 @@
     "tls": "",
     "x": 160,
     "y": 100,
-    "wires": [["arkteos_watchdog", "arkteos_parse_frame"]]
+    "wires": [
+      [
+        "arkteos_watchdog",
+        "arkteos_parse_frame"
+      ]
+    ]
   },
   {
     "id": "arkteos_watchdog",
@@ -62,14 +67,20 @@
     "libs": [],
     "x": 400,
     "y": 40,
-    "wires": [[]]
+    "wires": [
+      []
+    ]
   },
   {
     "id": "arkteos_watchdog_check_inject",
     "type": "inject",
     "z": "arkteos_flow",
     "name": "Check connexion toutes les 15s",
-    "props": [{ "p": "payload" }],
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
     "repeat": "15",
     "crontab": "",
     "once": true,
@@ -79,7 +90,11 @@
     "payloadType": "date",
     "x": 180,
     "y": 40,
-    "wires": [["arkteos_watchdog_check"]]
+    "wires": [
+      [
+        "arkteos_watchdog_check"
+      ]
+    ]
   },
   {
     "id": "arkteos_watchdog_check",
@@ -94,7 +109,11 @@
     "libs": [],
     "x": 430,
     "y": 40,
-    "wires": [["arkteos_mqtt_out"]]
+    "wires": [
+      [
+        "arkteos_mqtt_out"
+      ]
+    ]
   },
   {
     "id": "arkteos_parse_frame",
@@ -109,7 +128,11 @@
     "libs": [],
     "x": 380,
     "y": 100,
-    "wires": [["arkteos_filter_aberrant"]]
+    "wires": [
+      [
+        "arkteos_filter_aberrant"
+      ]
+    ]
   },
   {
     "id": "arkteos_filter_aberrant",
@@ -124,7 +147,11 @@
     "libs": [],
     "x": 590,
     "y": 100,
-    "wires": [["arkteos_route"]]
+    "wires": [
+      [
+        "arkteos_route"
+      ]
+    ]
   },
   {
     "id": "arkteos_route",
@@ -134,8 +161,16 @@
     "property": "payload.frame_type",
     "propertyType": "msg",
     "rules": [
-      { "t": "eq", "v": "frigo",      "vt": "str" },
-      { "t": "eq", "v": "regulation", "vt": "str" }
+      {
+        "t": "eq",
+        "v": "frigo",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "regulation",
+        "vt": "str"
+      }
     ],
     "checkall": "false",
     "repair": false,
@@ -143,8 +178,12 @@
     "x": 800,
     "y": 100,
     "wires": [
-      ["arkteos_throttle_frigo"],
-      ["arkteos_throttle_regulation"]
+      [
+        "arkteos_throttle_frigo"
+      ],
+      [
+        "arkteos_throttle_regulation"
+      ]
     ]
   },
   {
@@ -160,14 +199,19 @@
     "libs": [],
     "x": 1010,
     "y": 60,
-    "wires": [["arkteos_debug_frigo_parsed", "arkteos_publish_frigo"]]
+    "wires": [
+      [
+        "arkteos_debug_frigo_parsed",
+        "arkteos_publish_frigo"
+      ]
+    ]
   },
   {
     "id": "arkteos_throttle_regulation",
     "type": "function",
     "z": "arkteos_flow",
     "name": "Throttle regulation",
-    "func": "const THRESHOLDS = {\n    puissance_inst_produite:          10,\n    puissance_inst_consommee:         10,\n    temps_mise_sous_tension:          1,\n    primaire_temp_eau_aller_consigne: 0.5,\n    primaire_temp_eau_aller:          0.5,\n    primaire_temp_eau_retour:         0.5,\n    primaire_debit_eau:               1,\n    primaire_pression:                0.1,\n    primaire_circulateur_consigne:    1,\n    zone1_temp_interieur:             0.5,\n    zone1_consigne:                   0.5,\n    ecs_temp_eau_milieu:              0.5,\n    ecs_temp_eau_bas:                 0.5,\n    ecs_consigne:                     0.5,\n    nb_cycles_compresseur_reg:        1,\n    statut_pac:                       1,\n    active_error_reg:                 1,\n    signal_rf_sonde_1:                1\n};\nconst MAX_INTERVALS = {\n    puissance_inst_produite:          30000,\n    puissance_inst_consommee:         30000,\n    temps_mise_sous_tension:          300000,\n    primaire_temp_eau_aller_consigne: 60000,\n    primaire_temp_eau_aller:          60000,\n    primaire_temp_eau_retour:         60000,\n    primaire_debit_eau:               60000,\n    primaire_pression:                60000,\n    primaire_circulateur_consigne:    60000,\n    zone1_temp_interieur:             60000,\n    zone1_consigne:                   60000,\n    ecs_temp_eau_milieu:              60000,\n    ecs_temp_eau_bas:                 60000,\n    ecs_consigne:                     60000,\n    nb_cycles_compresseur_reg:        300000,\n    statut_pac:                       60000,\n    active_error_reg:                 60000,\n    signal_rf_sonde_1:                300000\n};\n\nconst now = Date.now();\nconst prev = context.get('prev') || {};\nconst lastPublished = context.get('lastPublished') || {};\nconst data = msg.payload;\nconst toPublish = {};\n\nfor (const key of Object.keys(THRESHOLDS)) {\n    const val = data[key];\n    if (val === undefined) continue;\n    const prevVal = prev[key];\n    const lastTs = lastPublished[key] || 0;\n    const delta = prevVal !== undefined ? Math.abs(val - prevVal) : Infinity;\n    const elapsed = now - lastTs;\n    if (delta >= THRESHOLDS[key] || elapsed >= MAX_INTERVALS[key]) {\n        toPublish[key] = val;\n        lastPublished[key] = now;\n        prev[key] = val;\n    }\n}\n\n// Toujours inclure statut_pac_s et modele_pac_s si les valeurs numériques changent\nif (toPublish.statut_pac !== undefined) {\n    toPublish.statut_pac_s = data.statut_pac_s;\n}\nif (toPublish.modele_pac !== undefined) {\n    toPublish.modele_pac_s = data.modele_pac_s;\n}\n\ncontext.set('prev', prev);\ncontext.set('lastPublished', lastPublished);\n\nif (Object.keys(toPublish).length === 0) return null;\n\nmsg.payload = Object.assign({ frame_type: 'regulation' }, toPublish);\nreturn msg;\n",
+    "func": "const THRESHOLDS = {\n    puissance_inst_produite:          10,\n    puissance_inst_consommee:         10,\n    temps_mise_sous_tension:          1,\n    primaire_temp_eau_aller_consigne: 0.5,\n    primaire_temp_eau_aller:          0.5,\n    primaire_temp_eau_retour:         0.5,\n    primaire_debit_eau:               1,\n    primaire_pression:                0.1,\n    primaire_circulateur_consigne:    1,\n    zone1_temp_interieur:             0.5,\n    zone1_consigne:                   0.5,\n    ecs_temp_eau_milieu:              0.5,\n    ecs_temp_eau_bas:                 0.5,\n    ecs_consigne:                     0.5,\n    nb_cycles_compresseur_reg:        1,\n    modele_pac:                       1,\n    statut_pac:                       1,\n    active_error_reg:                 1,\n    signal_rf_sonde_1:                1\n};\nconst MAX_INTERVALS = {\n    puissance_inst_produite:          30000,\n    puissance_inst_consommee:         30000,\n    temps_mise_sous_tension:          300000,\n    primaire_temp_eau_aller_consigne: 60000,\n    primaire_temp_eau_aller:          60000,\n    primaire_temp_eau_retour:         60000,\n    primaire_debit_eau:               60000,\n    primaire_pression:                60000,\n    primaire_circulateur_consigne:    60000,\n    zone1_temp_interieur:             60000,\n    zone1_consigne:                   60000,\n    ecs_temp_eau_milieu:              60000,\n    ecs_temp_eau_bas:                 60000,\n    ecs_consigne:                     60000,\n    nb_cycles_compresseur_reg:        300000,\n    modele_pac:                       3600000,\n    statut_pac:                       60000,\n    active_error_reg:                 60000,\n    signal_rf_sonde_1:                300000\n};\n\nconst now = Date.now();\nconst prev = context.get('prev') || {};\nconst lastPublished = context.get('lastPublished') || {};\nconst data = msg.payload;\nconst toPublish = {};\n\nfor (const key of Object.keys(THRESHOLDS)) {\n    const val = data[key];\n    if (val === undefined) continue;\n    const prevVal = prev[key];\n    const lastTs = lastPublished[key] || 0;\n    const delta = prevVal !== undefined ? Math.abs(val - prevVal) : Infinity;\n    const elapsed = now - lastTs;\n    if (delta >= THRESHOLDS[key] || elapsed >= MAX_INTERVALS[key]) {\n        toPublish[key] = val;\n        lastPublished[key] = now;\n        prev[key] = val;\n    }\n}\n\n// Toujours inclure statut_pac_s et modele_pac_s si les valeurs numériques changent\nif (toPublish.statut_pac !== undefined) {\n    toPublish.statut_pac_s = data.statut_pac_s;\n}\nif (toPublish.modele_pac !== undefined) {\n    toPublish.modele_pac_s = data.modele_pac_s;\n}\n\ncontext.set('prev', prev);\ncontext.set('lastPublished', lastPublished);\n\nif (Object.keys(toPublish).length === 0) return null;\n\nmsg.payload = Object.assign({ frame_type: 'regulation' }, toPublish);\nreturn msg;\n",
     "outputs": 1,
     "noerr": 0,
     "initialize": "",
@@ -175,7 +219,12 @@
     "libs": [],
     "x": 1010,
     "y": 140,
-    "wires": [["arkteos_debug_regulation_parsed", "arkteos_publish_regulation"]]
+    "wires": [
+      [
+        "arkteos_debug_regulation_parsed",
+        "arkteos_publish_regulation"
+      ]
+    ]
   },
   {
     "id": "arkteos_debug_frigo_parsed",
@@ -224,7 +273,12 @@
     "libs": [],
     "x": 1230,
     "y": 80,
-    "wires": [["arkteos_debug_frigo_published", "arkteos_mqtt_out"]]
+    "wires": [
+      [
+        "arkteos_debug_frigo_published",
+        "arkteos_mqtt_out"
+      ]
+    ]
   },
   {
     "id": "arkteos_publish_regulation",
@@ -239,7 +293,12 @@
     "libs": [],
     "x": 1230,
     "y": 200,
-    "wires": [["arkteos_debug_regulation_published", "arkteos_mqtt_out"]]
+    "wires": [
+      [
+        "arkteos_debug_regulation_published",
+        "arkteos_mqtt_out"
+      ]
+    ]
   },
   {
     "id": "arkteos_debug_frigo_published",
@@ -293,7 +352,11 @@
     "type": "inject",
     "z": "arkteos_flow",
     "name": "Send discovery (1x au démarrage)",
-    "props": [{ "p": "payload" }],
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
     "repeat": "",
     "crontab": "",
     "once": true,
@@ -303,7 +366,11 @@
     "payloadType": "date",
     "x": 200,
     "y": 460,
-    "wires": [["arkteos_discovery"]]
+    "wires": [
+      [
+        "arkteos_discovery"
+      ]
+    ]
   },
   {
     "id": "arkteos_discovery",
@@ -318,7 +385,12 @@
     "libs": [],
     "x": 480,
     "y": 460,
-    "wires": [["arkteos_debug_discovery", "arkteos_mqtt_out"]]
+    "wires": [
+      [
+        "arkteos_debug_discovery",
+        "arkteos_mqtt_out"
+      ]
+    ]
   },
   {
     "id": "arkteos_debug_discovery",
