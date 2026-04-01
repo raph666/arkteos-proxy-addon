@@ -60,8 +60,9 @@ Les valeurs hors plage physiquement plausible sont ignorées et loguées dans la
 | Statut frigo | 0 à 3 |
 | Statut PAC | 0 à 9 |
 | Signal RF sonde | -128 à 127 dBm |
-| Nb cycles compresseur | 0 à 9 999 999 |
+| Nombre de dégivrages | 0 à 99 999 |
 | Temps fonctionnement compresseur | 0 à 999 999 h |
+| Nb cycles compresseur | 0 à 9 999 999 |
 | Temps mise sous tension | 0 à 999 999 h |
 
 **Throttling**
@@ -90,6 +91,7 @@ Une valeur n'est publiée que si elle a changé au-delà d'un seuil défini, ave
 | Statut frigo | changement | 60s |
 | Statut PAC | changement | 60s |
 | Erreurs | changement | 60s |
+| Nombre de dégivrages | 1 | 5 min |
 | Nb cycles compresseur | 100 | 5 min |
 | Temps fonctionnement compresseur | 1 h | 5 min |
 | Temps mise sous tension | 1 h | 5 min |
